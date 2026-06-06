@@ -1,0 +1,55 @@
+:root {
+  --font-ui: 'IBM Plex Mono', 'JetBrains Mono', 'Courier New', monospace;
+  --font-code: 'IBM Plex Mono', 'JetBrains Mono', 'Courier New', monospace;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --bg-main: #f8fafc;
+  --text-main: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+pre, code, textarea {
+  font-family: var(--font-code) !important;
+}
+
+/* Transition Animations */
+button, input, textarea, select {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active {
+  transform: scale(0.97);
+}
