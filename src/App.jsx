@@ -83,6 +83,7 @@ For ALL categories (Array, Matrix, Graph, String):
 - For recursive algorithms (e.g., DFS, backtracking, tree traversal, recursion), you MUST include a "callStack" array in each step, representing active stack frames from top (current frame, index 0) to bottom (initial call, last index), showing arguments and local scopes.
 
 Simulate every step carefully on the requested input array, string, graph, or matrix. Keep messages simple and clear.
+CRITICAL: You MUST generate a DETAILED, GRANULAR step-by-step trace with at least 10-15 steps (more for complex algorithms). Each individual loop iteration, each comparison, each swap, each recursive call, and each variable update should be its own separate step. Do NOT summarize or skip iterations. For example, for Bubble Sort on [5,3,1,4,2], generate one step per comparison (not one step per pass). For Binary Search, generate one step per mid-point check. Students need to see EVERY single operation to understand the algorithm. The "msg" field in each step should explain what is happening in plain beginner-friendly English (e.g., "Comparing arr[0]=5 with arr[1]=3. Since 5 > 3, we swap them."). Each step must update the visualization state (arrStates, matrixState, nodeStates, etc.) to reflect exactly what changed.
 If the pasted code is a class constructor or query-based class implementation (e.g. NumMatrix, SegmentTree, Trie, UnionFind) that does not have a main driver or is missing trailing braces (incomplete brackets/braces), do NOT flag it as invalid. Instead, set "isValid": true, specify "isCorrect": false, list the compilation/structural bugs (e.g., "missing closing braces", "no query function"), and generate a complete, corrected version in "correctedCode". Simulate a complete dry-run trace sequence of building the structure step-by-step in the "steps" array (representing row-by-row matrix initialization, tree node insertion, or parent array union actions) so the student can visualize it.
 If invalid/not DSA: isValid=false, steps=[].
 If bugs: isCorrect=false, list bugs, correctedCode, simulate corrected version.
@@ -1841,7 +1842,7 @@ export default function DSAAnalyzer() {
         const reqBody = {
           model: candidate.id,
           temperature: 0.1,
-          max_tokens: 4000,
+          max_tokens: 16000,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userPrompt }
