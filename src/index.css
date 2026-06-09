@@ -54,8 +54,71 @@ button:active {
   transform: scale(0.97);
 }
 
+/* Print/Screen utility for notes */
+.print-only {
+  display: none !important;
+}
+
+/* Responsive Grid for Live Visualization */
+.live-viz-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+}
+
+.live-viz-left-col {
+  padding: 16px;
+  border-right: 1px solid #e2e8f0;
+}
+
+@media (max-width: 992px) {
+  .live-viz-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .live-viz-left-col {
+    border-right: none !important;
+    border-bottom: 1px solid #e2e8f0;
+  }
+}
+
+/* Responsive Line-by-line Trace Logic */
+.trace-line-item {
+  display: flex;
+  gap: 14px;
+  padding: 9px 16px;
+  align-items: flex-start;
+}
+
+.trace-line-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.trace-line-explain {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+@media (max-width: 576px) {
+  .trace-line-item {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .trace-line-explain {
+    margin-left: 30px !important;
+  }
+}
+
 /* Print Styles for dry run PDF generation */
 @media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
   body {
     background: white !important;
     color: black !important;
@@ -82,5 +145,38 @@ button:active {
   }
   .no-print {
     display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  /* Scale trace table and wrap code for print readability */
+  #dry-run-sheet-print-area table {
+    width: 100% !important;
+    table-layout: auto !important;
+    font-size: 8pt !important;
+  }
+  #dry-run-sheet-print-area th, 
+  #dry-run-sheet-print-area td {
+    padding: 6px 4px !important;
+    word-break: break-word !important;
+  }
+  #dry-run-sheet-print-area tr {
+    page-break-inside: avoid !important;
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.8;
   }
 }
