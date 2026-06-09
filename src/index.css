@@ -53,3 +53,34 @@ button, input, textarea, select {
 button:active {
   transform: scale(0.97);
 }
+
+/* Print Styles for dry run PDF generation */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt !important;
+  }
+  /* Hide all elements on screen by default */
+  body * {
+    visibility: hidden;
+  }
+  /* Keep only the dry run print container and its descendants visible */
+  #dry-run-sheet-print-area, #dry-run-sheet-print-area * {
+    visibility: visible;
+  }
+  #dry-run-sheet-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

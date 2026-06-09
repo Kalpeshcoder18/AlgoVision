@@ -10,7 +10,7 @@ JSON structure:
   "isValid": true,
   "language": "C++",
   "algorithmName": "name",
-  "category": "Array/Sorting/Searching/Graph/Tree/Matrix/etc",
+  "category": "Array/Sorting/Searching/Graph/Tree/Matrix/String/etc",
   "isCorrect": true,
   "bugs": [],
   "correctedCode": "",
@@ -27,7 +27,8 @@ JSON structure:
   },
   "steps": [
     {
-      "arr": [1, 2, 3], // Present ONLY for array-based/sorting/searching algorithms (omit for Graph/Matrix)
+      "arr": [1, 2, 3], // Present ONLY for array-based/sorting/searching/string algorithms (omit for Graph/Matrix)
+      "arrStates": {"0": "active/comparing/swapping/done/skipped/idle"}, // Map of array index (string key) to state
       "matrix": [[1, 2], [3, 4]], // Present ONLY for 2D Grid/Matrix algorithms representing the grid state at this step
       "matrixState": {"0-0": "active/visited/done/idle/processing/swap/secondary/eliminated"}, // Cell states mapping "row-col" keys (e.g. "0-0", "1-2") to state strings
       "matrixVals": {"0-0": "val"}, // Optional custom values/labels for grid cells mapping "row-col" keys
@@ -35,22 +36,37 @@ JSON structure:
       "nodeVals": {"A": "dist=0"}, // Optional node values (e.g. Dijkstra distances or traversal values)
       "edgeStates": {"A-B": "highlighted/visited/idle"}, // Present ONLY for Graph/Tree algorithms (use "from-to" keys)
       "highlight": [1, 2], // line numbers (0-indexed) of codeLines corresponding to the active lines in this step
-      "pointers": {"0": "i"}, // index mapping pointers for arrays
+      "pointers": {"0": "i"}, // index mapping pointers for arrays/strings
       "activeLine": 0, // primary line of code executing
+      "variables": {"parent": "[0, 1, 0]", "size": "[2, 1, 1]", "i": "0"}, // Variable trace mapping. In EACH step, trace the exact values of active variables/arrays/pointers just like a student does on paper.
       "msg": "beginner friendly message explaining this step"
     }
   ]
 }
 
+For Array, Sorting, Searching, and String/Character algorithms:
+1. If the input is a string, represent it in the 'arr' field of each step as an array of characters: e.g., ['h', 'e', 'l', 'l', 'o'].
+2. In each step, you MUST map active indices in 'arrStates' to show visualization states:
+   - "active" for target/highlighted elements
+   - "comparing" for elements currently compared
+   - "swapping" for elements being swapped
+   - "done" for elements sorted or confirmed
+   - "skipped" for elements eliminated from the search space
+3. Use 'pointers' to display indices (e.g., 'i', 'j', 'left', 'right', 'low', 'high') to help visualize sorting/searching bounds and comparisons.
+
 For graph or tree algorithms:
 1. "graphLayout" defines the static positions of the nodes and connection edges. Layout trees hierarchically (root at top center, children below) and general graphs circularly or topologically.
-2. In each step, specify the state updates in "nodeStates", "nodeVals" and "edgeStates" to show traversal/changes. Do not output coordinate values in steps.
+2. In each step, you MUST update state properties ("nodeStates", "nodeVals" and "edgeStates") to visually explain/animate the traversal. Ensure states change dynamically step-by-step to reflect BFS/DFS/Dijkstra progression (e.g. active nodes change color, edges change color when traversed, distances update in nodeVals).
 
 For matrix or grid algorithms:
 1. "matrix" represents the 2D array grid at this step.
 2. In each step, specify cell states in "matrixState" and cell labels/values in "matrixVals" to highlight traversal path, comparisons, or cell values.
 
-Simulate every step carefully on the requested input array, graph, or matrix. Keep messages simple and clear.
+For ALL categories (Array, Matrix, Graph, String):
+- In the "variables" field of each step, you MUST trace the values of all active variables (e.g., loop variables like 'i', pointers like 'left'/'right', state arrays like 'parent' or 'size', or running sums).
+- Format array/matrix states inside "variables" as strings, e.g. "parent": "[0, 0, 1, 3]". This creates a dedicated column for each variable in the dry run trace table!
+
+Simulate every step carefully on the requested input array, string, graph, or matrix. Keep messages simple and clear.
 If invalid/not DSA: isValid=false, steps=[].
 If bugs: isCorrect=false, list bugs, correctedCode, simulate corrected version.`;
 
@@ -144,35 +160,76 @@ def floodFill(image, sr, sc, newColor):
             if c+1 < len(image[0]): dfs(r, c+1)
     dfs(sr, sc)
     return image`
+  },
+  palindrome: {
+    label: "JS Palindrome Check",
+    code: `// JavaScript - Palindrome Check (Two Pointers)
+function isPalindrome(str) {
+    let left = 0;
+    let right = str.length - 1;
+    while (left < right) {
+        if (str[left] !== str[right]) {
+            return false;
+        }
+        left++;
+        right--;
+    }
+    return true;
+}`
   }
 };
 
 const COLORS = {
   active: { bg: "#e8f0fe", border: "#1a73e8", text: "#1a73e8" },
+  comparing: { bg: "#fef7e0", border: "#f9ab00", text: "#b06000" },
   secondary: { bg: "#fef7e0", border: "#f9ab00", text: "#b06000" },
+  processing: { bg: "#fef7e0", border: "#f9ab00", text: "#b06000" },
   done: { bg: "#e6f4ea", border: "#1e8e3e", text: "#137333" },
-  eliminated: { bg: "#f1f3f4", border: "#dadce0", text: "#70757a" },
+  visited: { bg: "#e6f4ea", border: "#1e8e3e", text: "#137333" },
+  swapping: { bg: "#f3e8ff", border: "#a855f7", text: "#6b21a8" },
   swap: { bg: "#f3e8ff", border: "#a855f7", text: "#6b21a8" },
+  completed: { bg: "#f3e8ff", border: "#a855f7", text: "#6b21a8" },
+  skipped: { bg: "#f1f3f4", border: "#dadce0", text: "#70757a" },
+  eliminated: { bg: "#f1f3f4", border: "#dadce0", text: "#70757a" },
   idle: { bg: "#ffffff", border: "#dadce0", text: "#3c4043" },
 };
 
 function cellState(idx, step) {
   if (!step) return "idle";
-  if (step.swap?.includes(idx)) return "swap";
-  if (step.highlight?.includes(idx)) return "active";
-  if (step.secondary?.includes(idx)) return "secondary";
-  if (step.eliminated?.includes(idx)) return "eliminated";
-  if (step.done?.includes(idx)) return "done";
+
+  // Prioritize explicit arrStates if present
+  if (step.arrStates && step.arrStates[idx] !== undefined) {
+    return step.arrStates[idx];
+  }
+  if (step.arrStates && step.arrStates[String(idx)] !== undefined) {
+    return step.arrStates[String(idx)];
+  }
+
+  // Fallback to legacy arrays
+  const i = Number(idx);
+  if (step.swap?.includes(i)) return "swapping";
+  if (step.swapping?.includes(i)) return "swapping";
+  if (step.comparing?.includes(i)) return "comparing";
+  if (step.secondary?.includes(i)) return "comparing";
+  if (step.eliminated?.includes(i)) return "skipped";
+  if (step.skipped?.includes(i)) return "skipped";
+  if (step.done?.includes(i)) return "done";
+  if (step.active?.includes(i)) return "active";
+
   return "idle";
 }
 
 function ArrayViz({ step }) {
   if (!step?.arr) return null;
+  const arrayData = Array.isArray(step.arr)
+    ? step.arr
+    : (typeof step.arr === "string" ? step.arr.split("") : []);
+
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "flex-end", minHeight: 84, padding: "6px 0" }}>
-      {step.arr.map((val, idx) => {
-        const s = COLORS[cellState(idx, step)];
-        const ptr = step.pointers?.[idx];
+      {arrayData.map((val, idx) => {
+        const s = COLORS[cellState(idx, step)] || COLORS.idle;
+        const ptr = step.pointers?.[idx] || step.pointers?.[String(idx)];
         return (
           <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
             <span style={{ fontSize: 9, fontWeight: 700, color: ptr ? "#3b82f6" : "transparent", fontFamily: "monospace", minHeight: 12 }}>{ptr || "."}</span>
@@ -187,15 +244,19 @@ function ArrayViz({ step }) {
 
 function BarViz({ step }) {
   if (!step?.arr) return null;
-  const values = step.arr;
-  const maxVal = Math.max(...values.map(v => typeof v === 'number' ? v : 1), 1);
+  const values = Array.isArray(step.arr)
+    ? step.arr
+    : (typeof step.arr === "string" ? step.arr.split("") : []);
+  const numericValues = values.map(v => typeof v === 'number' ? v : (typeof v === 'string' && !isNaN(v) && !isNaN(parseFloat(v)) ? parseFloat(v) : 1));
+  const maxVal = Math.max(...numericValues, 1);
 
   return (
     <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 8, height: 140, padding: "10px 0", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
       {values.map((val, idx) => {
-        const percent = Math.max(10, (val / maxVal) * 100);
+        const numVal = typeof val === 'number' ? val : (typeof val === 'string' && !isNaN(val) && !isNaN(parseFloat(val)) ? parseFloat(val) : 1);
+        const percent = Math.max(10, (numVal / maxVal) * 100);
         const state = cellState(idx, step);
-        const s = COLORS[state];
+        const s = COLORS[state] || COLORS.idle;
 
         return (
           <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, maxWidth: 36, height: "100%", justifyContent: "flex-end" }}>
@@ -219,6 +280,50 @@ function BarViz({ step }) {
   );
 }
 
+function Legend({ category }) {
+  const cat = String(category || "").toLowerCase();
+  const isGraph = cat.includes("graph") || cat.includes("tree");
+  const isMatrix = cat.includes("matrix") || cat.includes("grid");
+
+  let items = [];
+  if (isGraph) {
+    items = [
+      { label: "current / active", ...COLORS.active },
+      { label: "processing / neighbors", ...COLORS.secondary },
+      { label: "visited / queued", ...COLORS.done },
+      { label: "completed / done", ...COLORS.completed },
+      { label: "unvisited", ...COLORS.idle }
+    ];
+  } else if (isMatrix) {
+    items = [
+      { label: "current / active", ...COLORS.active },
+      { label: "processing / next", ...COLORS.secondary },
+      { label: "visited", ...COLORS.done },
+      { label: "completed / path", ...COLORS.completed },
+      { label: "blocked / obstacle", ...COLORS.eliminated }
+    ];
+  } else {
+    items = [
+      { label: "active / target", ...COLORS.active },
+      { label: "comparing", ...COLORS.secondary },
+      { label: "swapping", ...COLORS.swap },
+      { label: "sorted / done", ...COLORS.done },
+      { label: "skipped / eliminated", ...COLORS.eliminated }
+    ];
+  }
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
+      {items.map((item, idx) => (
+        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ width: 11, height: 11, borderRadius: 3, background: item.bg, border: `1.5px solid ${item.border}` }} />
+          <span style={{ fontSize: 10, color: "#64748b", textTransform: "capitalize" }}>{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function GraphViz({ step, graphLayout }) {
   if (!graphLayout) return null;
   const { nodes = [], edges = [], directed = false } = graphLayout;
@@ -232,7 +337,25 @@ function GraphViz({ step, graphLayout }) {
     val: nodeVals[n.id] || ""
   }));
 
-  const combinedEdges = edges.map(e => {
+  // Build the edge list, including any edge from edgeStates that might not be declared in the static graphLayout.edges
+  let allEdges = [...edges];
+  if (edgeStates) {
+    Object.keys(edgeStates).forEach(key => {
+      const parts = key.split("-");
+      if (parts.length === 2) {
+        const from = parts[0];
+        const to = parts[1];
+        const exists = allEdges.some(e =>
+          (e.from === from && e.to === to) || (!directed && e.from === to && e.to === from)
+        );
+        if (!exists) {
+          allEdges.push({ from, to });
+        }
+      }
+    });
+  }
+
+  const combinedEdges = allEdges.map(e => {
     const key1 = `${e.from}-${e.to}`;
     const key2 = `${e.to}-${e.from}`;
     const state = edgeStates[key1] || edgeStates[key2] || "idle";
@@ -331,32 +454,16 @@ function GraphViz({ step, graphLayout }) {
           const { x, y } = getCoords(node.x, node.y);
           const state = node.state || "idle";
 
-          let bgColor = "#ffffff";
-          let borderColor = "#dadce0";
-          let textColor = "#3c4043";
-          let secTextColor = "#70757a";
-
-          if (state === "active") {
-            bgColor = "#e8f0fe";
-            borderColor = "#1a73e8";
-            textColor = "#1a73e8";
-            secTextColor = "#1a73e8";
-          } else if (state === "visited") {
-            bgColor = "#e6f4ea";
-            borderColor = "#1e8e3e";
-            textColor = "#137333";
-            secTextColor = "#1e8e3e";
-          } else if (state === "done") {
-            bgColor = "#f3e8ff";
-            borderColor = "#a855f7";
-            textColor = "#6b21a8";
-            secTextColor = "#a855f7";
-          } else if (state === "secondary" || state === "processing") {
-            bgColor = "#fef7e0";
-            borderColor = "#f9ab00";
-            textColor = "#b06000";
-            secTextColor = "#b06000";
-          }
+          const normalizedState =
+            state === "done" ? "completed" :
+            state === "visited" ? "visited" :
+            (state === "processing" || state === "secondary") ? "processing" :
+            state;
+          const s = COLORS[normalizedState] || COLORS.idle;
+          let bgColor = s.bg;
+          let borderColor = s.border;
+          let textColor = s.text;
+          let secTextColor = s.text;
 
           return (
             <g key={`node-${node.id}`} transform={`translate(${x}, ${y})`} style={{ cursor: "default" }}>
@@ -403,64 +510,283 @@ function MatrixViz({ step }) {
   const matrixState = step.matrixState || {};
   const matrixVals = step.matrixVals || {};
 
-  const numCols = matrix[0]?.length || 0;
+  return (
+    <div style={{ padding: "10px 0", overflowX: "auto", width: "100%", display: "flex", justifyContent: "center" }}>
+      <table style={{ borderCollapse: "separate", borderSpacing: "4px", margin: "0 auto" }}>
+        <thead>
+          <tr>
+            <th style={{ width: 20 }}></th>
+            {matrix[0]?.map((_, cIdx) => (
+              <th key={cIdx} style={{ fontSize: 9, color: "#94a3b8", fontFamily: "monospace", fontWeight: 400, textAlign: "center", paddingBottom: 2 }}>
+                {cIdx}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {matrix.map((row, rIdx) => (
+            <tr key={rIdx}>
+              <td style={{ fontSize: 9, color: "#94a3b8", fontFamily: "monospace", textAlign: "right", paddingRight: 6, verticalAlign: "middle" }}>
+                {rIdx}
+              </td>
+              {row.map((val, cIdx) => {
+                const key = `${rIdx}-${cIdx}`;
+                const state = matrixState[key] || "idle";
+                const s = COLORS[state] || COLORS.idle;
+                const extraVal = matrixVals[key];
+                const displayVal = String(val === undefined || val === null ? "" : val);
+
+                return (
+                  <td key={cIdx} style={{ padding: 0 }}>
+                    <div
+                      style={{
+                        minWidth: 40,
+                        height: 40,
+                        padding: "0 6px",
+                        borderRadius: 4,
+                        border: `2px solid ${s.border}`,
+                        background: s.bg,
+                        color: s.text,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: displayVal.length > 5 ? 9 : 12,
+                        fontWeight: 700,
+                        fontFamily: "monospace",
+                        position: "relative",
+                        transition: "all 0.3s",
+                        boxSizing: "border-box",
+                        whiteSpace: "nowrap",
+                        textAlign: "center"
+                      }}
+                      title={`Cell [${rIdx}][${cIdx}]: ${displayVal}`}
+                    >
+                      <span>{displayVal}</span>
+                      {extraVal && (
+                        <span style={{ fontSize: 7, color: "#94a3b8", position: "absolute", bottom: 1, right: 2 }}>
+                          {extraVal}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DryRunSheet({ analysis }) {
+  if (!analysis || !analysis.steps || analysis.steps.length === 0) return null;
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Gather unique variables/pointers dynamically across all steps
+  const varColumns = [];
+  analysis.steps.forEach(step => {
+    // Add from pointers
+    if (step.pointers) {
+      Object.values(step.pointers).forEach(name => {
+        if (name && !varColumns.includes(name)) {
+          varColumns.push(name);
+        }
+      });
+    }
+    // Add from variables
+    if (step.variables) {
+      Object.keys(step.variables).forEach(name => {
+        if (name && !varColumns.includes(name)) {
+          varColumns.push(name);
+        }
+      });
+    }
+  });
+
+  const hasArray = analysis.steps.some(s => s.arr);
+  const hasMatrix = analysis.steps.some(s => s.matrix);
+  const useFallback = varColumns.length === 0 && !hasArray && !hasMatrix;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center", padding: "10px 0", overflowX: "auto" }}>
-      {/* Column indices */}
-      <div style={{ display: "flex", gap: 4, paddingLeft: 20 }}>
-        {Array.from({ length: numCols }).map((_, cIdx) => (
-          <div key={cIdx} style={{ width: 40, textAlign: "center", fontSize: 9, color: "#94a3b8", fontFamily: "monospace" }}>
-            {cIdx}
-          </div>
-        ))}
+    <div style={{
+      background: "white",
+      border: "1px solid #e2e8f0",
+      borderRadius: 10,
+      boxShadow: "0 1px 3px 0 rgba(0,0,0,0.05)",
+      overflow: "hidden",
+      marginBottom: 20
+    }} id="dry-run-sheet-print-area">
+      <div style={{
+        padding: "12px 16px",
+        borderBottom: "1px solid #f1f5f9",
+        background: "#fafafa",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 10
+      }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{
+            fontSize: 10,
+            fontWeight: 700,
+            color: "#64748b",
+            letterSpacing: 1,
+            textTransform: "uppercase"
+          }}>Dry Run Trace Sheet</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+            ⚡ {analysis.algorithmName} State Tracker
+          </span>
+        </div>
+        <button
+          onClick={handlePrint}
+          className="no-print"
+          style={{
+            padding: "6px 14px",
+            borderRadius: 6,
+            border: "none",
+            background: "#3b82f6",
+            color: "white",
+            cursor: "pointer",
+            fontSize: 11,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            transition: "all 0.15s"
+          }}
+        >
+          🖨️ Download PDF / Print
+        </button>
       </div>
 
-      {matrix.map((row, rIdx) => (
-        <div key={rIdx} style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          {/* Row index */}
-          <div style={{ width: 16, textAlign: "right", fontSize: 9, color: "#94a3b8", fontFamily: "monospace", marginRight: 4 }}>
-            {rIdx}
-          </div>
-
-          {row.map((val, cIdx) => {
-            const key = `${rIdx}-${cIdx}`;
-            const state = matrixState[key] || "idle";
-            const s = COLORS[state] || COLORS.idle;
-            const extraVal = matrixVals[key];
-            return (
-              <div
-                key={cIdx}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 4,
-                  border: `2px solid ${s.border}`,
-                  background: s.bg,
-                  color: s.text,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  fontFamily: "monospace",
-                  position: "relative",
-                  transition: "all 0.3s"
-                }}
-                title={`Cell [${rIdx}][${cIdx}]`}
-              >
-                <span style={{ fontSize: 12 }}>{val}</span>
-                {extraVal && (
-                  <span style={{ fontSize: 7, color: "#94a3b8", position: "absolute", bottom: 1, right: 2 }}>
-                    {extraVal}
-                  </span>
-                )}
-              </div>
-            );
-          })}
+      <div style={{ padding: "16px" }}>
+        {/* Quick Summary Header */}
+        <div style={{ display: "flex", gap: 24, marginBottom: 16, borderBottom: "1px dashed #e2e8f0", paddingBottom: 12, fontSize: 11, color: "#475569" }}>
+          <div><strong>Complexity:</strong> Time: {analysis.timeComplexity} | Space: {analysis.spaceComplexity}</div>
+          <div><strong>Language:</strong> {analysis.language}</div>
+          <div><strong>Category:</strong> {analysis.category}</div>
         </div>
-      ))}
+
+        {/* Trace Table */}
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5 }}>
+            <thead>
+              <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                <th style={{ padding: "10px 8px", textAlign: "left", width: 45, color: "#475569", fontWeight: 700 }}>Step</th>
+                <th style={{ padding: "10px 8px", textAlign: "left", width: 180, color: "#475569", fontWeight: 700 }}>Line Executed</th>
+                
+                {/* Render dynamic columns for variables */}
+                {varColumns.map(colName => (
+                  <th key={colName} style={{ padding: "10px 8px", textAlign: "center", minWidth: 60, color: "#2563eb", fontWeight: 700, fontFamily: "monospace" }}>
+                    {colName}
+                  </th>
+                ))}
+
+                {/* Render dynamic columns for Array / Matrix */}
+                {hasArray && (
+                  <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120, color: "#475569", fontWeight: 700 }}>Array</th>
+                )}
+                {hasMatrix && (
+                  <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120, color: "#475569", fontWeight: 700 }}>Matrix</th>
+                )}
+                
+                {/* Fallback column */}
+                {useFallback && (
+                  <th style={{ padding: "10px 8px", textAlign: "left", width: 180, color: "#475569", fontWeight: 700 }}>Variables</th>
+                )}
+
+                <th style={{ padding: "10px 8px", textAlign: "left", color: "#475569", fontWeight: 700 }}>Explanation / Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.steps.map((step, idx) => {
+                const codeLineObj = analysis.codeLines?.[step.activeLine];
+                const codeLineText = codeLineObj ? codeLineObj.line.trim() : "";
+
+                return (
+                  <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9", verticalAlign: "top" }}>
+                    {/* Step # */}
+                    <td style={{ padding: "12px 8px", fontWeight: 700, color: "#64748b", fontFamily: "monospace" }}>
+                      #{idx + 1}
+                    </td>
+
+                    {/* Line Executed */}
+                    <td style={{ padding: "12px 8px", fontFamily: "monospace", color: "#0f172a", background: "#fafafa" }}>
+                      {codeLineText ? (
+                        <div>
+                          <div style={{ fontSize: 8.5, color: "#94a3b8", marginBottom: 2 }}>Line {step.activeLine + 1}:</div>
+                          <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", lineHeight: 1.35 }}>{codeLineText}</div>
+                        </div>
+                      ) : (
+                        <em style={{ color: "#94a3b8" }}>N/A</em>
+                      )}
+                    </td>
+
+                    {/* Dynamic Variables Columns values */}
+                    {varColumns.map(colName => {
+                      let value = "-";
+                      if (step.variables && step.variables[colName] !== undefined) {
+                        value = typeof step.variables[colName] === 'object' ? JSON.stringify(step.variables[colName]) : String(step.variables[colName]);
+                      } else if (step.pointers) {
+                        // Find if pointers maps an index to this colName
+                        const ptrIdx = Object.keys(step.pointers).find(k => step.pointers[k] === colName);
+                        if (ptrIdx !== undefined) {
+                          value = ptrIdx;
+                        }
+                      }
+                      return (
+                        <td key={colName} style={{ padding: "12px 8px", textAlign: "center", fontFamily: "monospace", color: "#2563eb", fontWeight: 600 }}>
+                          {value}
+                        </td>
+                      );
+                    })}
+
+                    {/* Array visual column */}
+                    {hasArray && (
+                      <td style={{ padding: "12px 8px", fontFamily: "monospace", color: "#0f172a" }}>
+                        {step.arr ? (
+                          `[${(Array.isArray(step.arr) ? step.arr : step.arr.split("")).join(", ")}]`
+                        ) : (
+                          <span style={{ color: "#94a3b8" }}>-</span>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Matrix visual column */}
+                    {hasMatrix && (
+                      <td style={{ padding: "12px 8px", fontFamily: "monospace", color: "#0f172a" }}>
+                        {step.matrix ? (
+                          step.matrix.map(row => `[${row.join(",")}]`).join(", ")
+                        ) : (
+                          <span style={{ color: "#94a3b8" }}>-</span>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Fallback column */}
+                    {useFallback && (
+                      <td style={{ padding: "12px 8px", fontFamily: "monospace", color: "#64748b" }}>
+                        None
+                      </td>
+                    )}
+
+                    {/* Explanation / Action */}
+                    <td style={{ padding: "12px 8px", color: "#334155", lineHeight: 1.45 }}>
+                      {step.msg}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
@@ -967,31 +1293,38 @@ export default function DSAAnalyzer() {
                             {analysis?.graphLayout ? "Graph Canvas" : cur?.matrix ? "Matrix State" : "Array state"}
                           </span>
                           {!analysis?.graphLayout && !cur?.matrix && cur?.arr && (
-                            <div style={{ display: "flex", background: "#f1f5f9", padding: 2, borderRadius: 6 }}>
-                              <button onClick={() => setVizMode("cells")} style={{ padding: "3px 8px", fontSize: 9, fontWeight: 700, border: "none", borderRadius: 4, background: vizMode === "cells" ? "white" : "transparent", color: vizMode === "cells" ? "#1e293b" : "#64748b", cursor: "pointer", boxShadow: vizMode === "cells" ? "0 1px 2px rgba(0,0,0,0.05)" : "none", transition: "all 0.15s" }}>Cells</button>
-                              <button onClick={() => setVizMode("bars")} style={{ padding: "3px 8px", fontSize: 9, fontWeight: 700, border: "none", borderRadius: 4, background: vizMode === "bars" ? "white" : "transparent", color: vizMode === "bars" ? "#1e293b" : "#64748b", cursor: "pointer", boxShadow: vizMode === "bars" ? "0 1px 2px rgba(0,0,0,0.05)" : "none", transition: "all 0.15s" }}>Bars</button>
-                            </div>
+                            (() => {
+                              const isNumeric = Array.isArray(cur.arr)
+                                ? cur.arr.every(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(v) && !isNaN(parseFloat(v))))
+                                : false;
+                              return isNumeric && (
+                                <div style={{ display: "flex", background: "#f1f5f9", padding: 2, borderRadius: 6 }}>
+                                  <button onClick={() => setVizMode("cells")} style={{ padding: "3px 8px", fontSize: 9, fontWeight: 700, border: "none", borderRadius: 4, background: vizMode === "cells" ? "white" : "transparent", color: vizMode === "cells" ? "#1e293b" : "#64748b", cursor: "pointer", boxShadow: vizMode === "cells" ? "0 1px 2px rgba(0,0,0,0.05)" : "none", transition: "all 0.15s" }}>Cells</button>
+                                  <button onClick={() => setVizMode("bars")} style={{ padding: "3px 8px", fontSize: 9, fontWeight: 700, border: "none", borderRadius: 4, background: vizMode === "bars" ? "white" : "transparent", color: vizMode === "bars" ? "#1e293b" : "#64748b", cursor: "pointer", boxShadow: vizMode === "bars" ? "0 1px 2px rgba(0,0,0,0.05)" : "none", transition: "all 0.15s" }}>Bars</button>
+                                </div>
+                              );
+                            })()
                           )}
                         </div>
 
-                        {analysis?.graphLayout ? (
-                          <GraphViz step={cur} graphLayout={analysis.graphLayout} />
-                        ) : cur?.matrix ? (
-                          <MatrixViz step={cur} />
-                        ) : vizMode === "bars" ? (
-                          <BarViz step={cur} />
-                        ) : (
-                          <ArrayViz step={cur} />
-                        )}
+                        {(() => {
+                          const isNumeric = cur?.arr && (
+                            Array.isArray(cur.arr)
+                              ? cur.arr.every(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(v) && !isNaN(parseFloat(v))))
+                              : false
+                          );
+                          return analysis?.graphLayout ? (
+                            <GraphViz step={cur} graphLayout={analysis.graphLayout} />
+                          ) : cur?.matrix ? (
+                            <MatrixViz step={cur} />
+                          ) : (vizMode === "bars" && isNumeric) ? (
+                            <BarViz step={cur} />
+                          ) : (
+                            <ArrayViz step={cur} />
+                          );
+                        })()}
 
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
-                          {[["active", "#dbeafe", "#3b82f6"], ["comparing", "#fef3c7", "#f59e0b"], ["done", "#dcfce7", "#22c55e"], ["swapping", "#ede9fe", "#8b5cf6"], ["skipped", "#f1f5f9", "#cbd5e1"]].map(([l, bg, bd]) => (
-                            <div key={l} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                              <div style={{ width: 11, height: 11, borderRadius: 3, background: bg, border: `1.5px solid ${bd}` }} />
-                              <span style={{ fontSize: 10, color: "#94a3b8" }}>{l}</span>
-                            </div>
-                          ))}
-                        </div>
+                        <Legend category={analysis?.category} />
                         {cur?.pointers && Object.keys(cur.pointers).length > 0 && !cur.graph && (
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
                             {Object.entries(cur.pointers).map(([idx, lbl]) => (
@@ -1041,6 +1374,8 @@ export default function DSAAnalyzer() {
                     ))}
                   </div>
                 )}
+
+                <DryRunSheet analysis={analysis} />
               </>
             )}
           </>
