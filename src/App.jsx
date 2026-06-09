@@ -87,6 +87,7 @@ If the pasted code is a class constructor or query-based class implementation (e
 If invalid/not DSA: isValid=false, steps=[].
 If bugs: isCorrect=false, list bugs, correctedCode, simulate corrected version.
 In "transpiledSolutions", provide clean, working, equivalent implementations of the algorithm in C++ ("cpp"), Python ("python"), Java ("java"), and JavaScript ("javascript"). Transpile the original code if it is correct, or the corrected code if it has bugs.
+Formatting of code fields in JSON: In "correctedCode" and all fields under "transpiledSolutions" ("cpp", "python", "java", "javascript"), you MUST format the code with clean, standard spacing, indentation, and newlines ("\n" characters). Do NOT compress the code into a single line or use semicolons to squash blocks of code.
 In "quiz", generate exactly 3 thought-provoking, conceptual multiple-choice questions to test the student's high-level algorithmic mindset (e.g., potential bugs, edge cases, loop invariants, or complexity reasoning). Each question must have exactly 4 choices, a correct answer that matches one of the choices exactly, and a helpful explanation.`;
 
 const DEMOS = {
@@ -966,7 +967,22 @@ function DryRunSheet({ analysis }) {
               {analysis.correctedCode && (
                 <div>
                   <h4 style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>Corrected Code:</h4>
-                  <pre style={{ margin: 0, padding: 8, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 4, fontFamily: "monospace", fontSize: 9.5, color: "#1f2937", overflowX: "auto", lineHeight: 1.4 }}>
+                  <pre style={{
+                    margin: 0,
+                    padding: 8,
+                    background: "#f9fafb",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 4,
+                    fontFamily: "monospace",
+                    fontSize: 9.5,
+                    color: "#1f2937",
+                    overflowX: "auto",
+                    overflowY: "auto",
+                    maxHeight: "200px",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    lineHeight: 1.4
+                  }}>
                     {analysis.correctedCode}
                   </pre>
                 </div>
@@ -2251,6 +2267,10 @@ export default function DSAAnalyzer() {
                       color: "#1e293b",
                       lineHeight: 1.7,
                       overflowX: "auto",
+                      overflowY: "auto",
+                      maxHeight: "350px",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
                       background: "#fafafa"
                     }}>
                       {(() => {
