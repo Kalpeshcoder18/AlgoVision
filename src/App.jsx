@@ -1829,9 +1829,9 @@ export default function DSAAnalyzer() {
       (customInput.trim() ? "\n\nSimulate the execution step-by-step using this custom input structure: " + customInput.trim() : "");
 
     const candidates = [
-      { id: "openai/gpt-oss-120b", maxTokens: 16000 },
-      { id: "llama-3.3-70b-versatile", jsonMode: true, maxTokens: 16000 },
-      { id: "groq/compound", jsonMode: true, maxTokens: 8192 }
+      { id: "llama-3.3-70b-versatile", jsonMode: true, maxTokens: 8192 },
+      { id: "groq/compound", jsonMode: true, maxTokens: 8192 },
+      { id: "openai/gpt-oss-120b", maxTokens: 8192 }
     ];
 
     let lastError = null;
@@ -1890,7 +1890,10 @@ export default function DSAAnalyzer() {
     }
 
     // If all candidates failed
-    setError(lastError?.message || "Failed to analyze. Check your code and try again.");
+    const isRateLimit = lastError?.message?.toLowerCase().includes("rate limit");
+    setError(isRateLimit
+      ? "All AI models are currently rate-limited. Please wait 2-3 minutes and try again."
+      : (lastError?.message || "Failed to analyze. Check your code and try again."));
     setPhase("error");
   }
 
