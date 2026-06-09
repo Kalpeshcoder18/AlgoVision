@@ -1829,9 +1829,9 @@ export default function DSAAnalyzer() {
       (customInput.trim() ? "\n\nSimulate the execution step-by-step using this custom input structure: " + customInput.trim() : "");
 
     const candidates = [
-      { id: "openai/gpt-oss-120b" },
-      { id: "llama-3.3-70b-versatile", jsonMode: true },
-      { id: "groq/compound", jsonMode: true }
+      { id: "openai/gpt-oss-120b", maxTokens: 16000 },
+      { id: "llama-3.3-70b-versatile", jsonMode: true, maxTokens: 16000 },
+      { id: "groq/compound", jsonMode: true, maxTokens: 8192 }
     ];
 
     let lastError = null;
@@ -1842,7 +1842,7 @@ export default function DSAAnalyzer() {
         const reqBody = {
           model: candidate.id,
           temperature: 0.1,
-          max_tokens: 16000,
+          max_tokens: candidate.maxTokens,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userPrompt }
