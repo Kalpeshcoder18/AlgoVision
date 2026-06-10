@@ -32,7 +32,7 @@ JSON structure:
       "explanation": "detailed explanation of why this answer is correct"
     }
   ],
-  "codeLines": [{"line": "code", "explain": "plain english"}],
+  "codeLines": [{"line": "code", "explain": "plain english"}], // You MUST include the ENTIRE algorithm code (or the corrected version if there are bugs) line-by-line in this array. Do NOT truncate or omit any lines, braces, returns, or helper functions. Every line of the code must be represented as a separate element in this array, in sequential order.
   "defaultInput": "describe input array or adjacency graph list or 2D grid simulated here",
   "graphLayout": { // Present ONLY for Graph/Tree algorithms (omit for Array/Sorting/Searching/Matrix)
     "directed": false,
@@ -89,7 +89,8 @@ If invalid/not DSA: isValid=false, steps=[].
 If bugs: isCorrect=false, list bugs, correctedCode, simulate corrected version.
 In "transpiledSolutions", provide clean, working, equivalent implementations of the algorithm in C++ ("cpp"), Python ("python"), Java ("java"), and JavaScript ("javascript"). Transpile the original code if it is correct, or the corrected code if it has bugs.
 Formatting of code fields in JSON: In "correctedCode" and all fields under "transpiledSolutions" ("cpp", "python", "java", "javascript"), you MUST format the code with clean, standard spacing, indentation, and newlines ("\n" characters). Do NOT compress the code into a single line or use semicolons to squash blocks of code.
-In "quiz", generate exactly 3 thought-provoking, conceptual multiple-choice questions to test the student's high-level algorithmic mindset (e.g., potential bugs, edge cases, loop invariants, or complexity reasoning). Each question must have exactly 4 choices, a correct answer that matches one of the choices exactly, and a helpful explanation.`;
+In "quiz", generate exactly 3 thought-provoking, conceptual multiple-choice questions to test the student's high-level algorithmic mindset (e.g., potential bugs, edge cases, loop invariants, or complexity reasoning). Each question must have exactly 4 choices, a correct answer that matches one of the choices exactly, and a helpful explanation.
+Formatting of codeLines: You MUST include the complete, line-by-line representation of the user-submitted code (or the corrected version if there are bugs) in the "codeLines" array. Every line of code, including helper function headers, loop headers, variable declarations, branch conditions, inside statements, closing braces, and return statements, must be its own separate element in the "codeLines" array. Do NOT truncate, summarize, or omit any parts of the code. The length of "codeLines" must match the full length of the algorithm code.`;
 
 const DEMOS = {
   remove_dup: {
@@ -240,11 +241,11 @@ function cellState(idx, step) {
   return "idle";
 }
 
-function ArrayViz({ step, onEdit }) {
-  if (!step?.arr) return null;
-  const arrayData = Array.isArray(step.arr)
-    ? step.arr
-    : (typeof step.arr === "string" ? step.arr.split("") : []);
+function ArrayViz({ arr, step, onEdit }) {
+  if (!arr) return null;
+  const arrayData = Array.isArray(arr)
+    ? arr
+    : (typeof arr === "string" ? arr.split("") : []);
 
   const handleCellClick = (idx, val) => {
     if (!onEdit) return;
@@ -292,11 +293,11 @@ function ArrayViz({ step, onEdit }) {
   );
 }
 
-function BarViz({ step }) {
-  if (!step?.arr) return null;
-  const values = Array.isArray(step.arr)
-    ? step.arr
-    : (typeof step.arr === "string" ? step.arr.split("") : []);
+function BarViz({ arr, step }) {
+  if (!arr) return null;
+  const values = Array.isArray(arr)
+    ? arr
+    : (typeof arr === "string" ? arr.split("") : []);
   const numericValues = values.map(v => typeof v === 'number' ? v : (typeof v === 'string' && !isNaN(v) && !isNaN(parseFloat(v)) ? parseFloat(v) : 1));
   const maxVal = Math.max(...numericValues, 1);
 
@@ -441,7 +442,7 @@ function RecursionStackPanel({ callStack }) {
   );
 }
 
-function GraphViz({ step, graphLayout, graphEditMode, setCustomInput }) {
+function GraphViz({ nodeStates = {}, nodeVals = {}, edgeStates = {}, graphLayout, graphEditMode, setCustomInput }) {
   if (!graphLayout) return null;
   
   const [layout, setLayout] = useState(graphLayout);
@@ -455,9 +456,6 @@ function GraphViz({ step, graphLayout, graphEditMode, setCustomInput }) {
   }, [graphLayout]);
 
   const { nodes = [], edges = [], directed = false } = layout || {};
-  const nodeStates = step?.nodeStates || {};
-  const nodeVals = step?.nodeVals || {};
-  const edgeStates = step?.edgeStates || {};
 
   const combinedNodes = (nodes || []).map(n => ({
     ...n,
@@ -749,9 +747,8 @@ function GraphViz({ step, graphLayout, graphEditMode, setCustomInput }) {
   );
 }
 
-function MatrixViz({ step, onEdit }) {
-  if (!step?.matrix) return null;
-  const matrix = step.matrix;
+function MatrixViz({ matrix, step, onEdit }) {
+  if (!matrix) return null;
 
   const handleCellClick = (rIdx, cIdx, val) => {
     if (!onEdit) return;
@@ -1557,6 +1554,115 @@ function ComplexityDashboard({ analysis }) {
   );
 }
 
+function getActiveArray(steps, stepIdx) {
+  for (let i = stepIdx; i >= 0; i--) {
+    if (steps[i]?.arr) return steps[i].arr;
+  }
+  return null;
+}
+
+function getActiveMatrix(steps, stepIdx) {
+  for (let i = stepIdx; i >= 0; i--) {
+    if (steps[i]?.matrix) return steps[i].matrix;
+  }
+  return null;
+}
+
+function getActiveNodeStates(steps, stepIdx) {
+  for (let i = stepIdx; i >= 0; i--) {
+    if (steps[i]?.nodeStates && Object.keys(steps[i].nodeStates).length > 0) {
+      return steps[i].nodeStates;
+    }
+  }
+  return {};
+}
+
+function getActiveNodeVals(steps, stepIdx) {
+  for (let i = stepIdx; i >= 0; i--) {
+    if (steps[i]?.nodeVals && Object.keys(steps[i].nodeVals).length > 0) {
+      return steps[i].nodeVals;
+    }
+  }
+  return {};
+}
+
+function getActiveEdgeStates(steps, stepIdx) {
+  for (let i = stepIdx; i >= 0; i--) {
+    if (steps[i]?.edgeStates && Object.keys(steps[i].edgeStates).length > 0) {
+      return steps[i].edgeStates;
+    }
+  }
+  return {};
+}
+
+function processParsedAnalysis(parsed, originalCode) {
+  if (!parsed) return parsed;
+  if (parsed.isValid === false) return parsed;
+  if (parsed.isProcessed) return parsed;
+
+  // Clone parsed object to avoid mutations
+  const result = { ...parsed };
+  if (result.transpiledSolutions) {
+    result.transpiledSolutions = { ...result.transpiledSolutions };
+  }
+  if (result.quiz) {
+    result.quiz = result.quiz.map(q => ({ ...q }));
+  }
+
+  const actualCode = (!result.isCorrect && result.correctedCode) ? result.correctedCode : originalCode;
+  if (!actualCode) return result;
+
+  const actualLines = actualCode.split('\n');
+  const codeLines = result.codeLines || [];
+  const reconstructedCodeLines = actualLines.map(lineText => ({
+    line: lineText,
+    explain: ""
+  }));
+
+  const codeLineToReconstructedMap = {};
+  let codeLinesIdx = 0;
+
+  for (let i = 0; i < reconstructedCodeLines.length; i++) {
+    const actualClean = reconstructedCodeLines[i].line.trim();
+    if (!actualClean) continue;
+
+    for (let j = codeLinesIdx; j < codeLines.length; j++) {
+      const candidateClean = (codeLines[j]?.line || "").trim();
+      if (actualClean === candidateClean || actualClean.includes(candidateClean) || candidateClean.includes(actualClean)) {
+        reconstructedCodeLines[i].explain = codeLines[j].explain || "";
+        codeLineToReconstructedMap[j] = i;
+        codeLinesIdx = j + 1;
+        break;
+      }
+    }
+  }
+
+  // Update activeLine and highlight refs in steps
+  if (result.steps && Array.isArray(result.steps)) {
+    result.steps = result.steps.map(step => {
+      if (!step) return step;
+      let updatedStep = { ...step };
+      if (step.activeLine !== undefined && step.activeLine !== null) {
+        const mappedIdx = codeLineToReconstructedMap[step.activeLine];
+        updatedStep.activeLine = mappedIdx !== undefined ? mappedIdx : step.activeLine;
+      }
+      if (Array.isArray(step.highlight)) {
+        updatedStep.highlight = step.highlight.map(idx => {
+          const mappedIdx = codeLineToReconstructedMap[idx];
+          return mappedIdx !== undefined ? mappedIdx : idx;
+        });
+      }
+      return updatedStep;
+    });
+  }
+
+  result.codeLines = reconstructedCodeLines;
+  result.isProcessed = true;
+  result.visualizerCode = actualCode;
+
+  return result;
+}
+
 export default function DSAAnalyzer() {
   const [code, setCode] = useState(DEMOS.remove_dup.code);
   const [activeDemo, setActiveDemo] = useState("remove_dup");
@@ -1570,6 +1676,9 @@ export default function DSAAnalyzer() {
   const [vizMode, setVizMode] = useState("cells");
   const [profileOpen, setProfileOpen] = useState(false);
   const [selectedLangTab, setSelectedLangTab] = useState("cpp");
+  const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem("groq_api_key") || "");
+  const [showKey, setShowKey] = useState(false);
+  const [isDefaultKeyExhausted, setIsDefaultKeyExhausted] = useState(false);
   const [quizActive, setQuizActive] = useState(false);
   const [quizQuestion, setQuizQuestion] = useState(null);
   const [quizSelected, setQuizSelected] = useState(null);
@@ -1794,15 +1903,16 @@ export default function DSAAnalyzer() {
   function loadHistoryItem(item) {
     setCode(item.code);
     setCustomInput(item.customInput || "");
-    setAnalysis(item.analysis);
+    const processed = processParsedAnalysis(item.analysis, item.code);
+    setAnalysis(processed);
     setStepIdx(0);
     setPhase("done");
     setError("");
     setPlaying(false);
     clearTimeout(timerRef.current);
 
-    if (item.analysis) {
-      const detectedLang = String(item.analysis.language || "").toLowerCase();
+    if (processed) {
+      const detectedLang = String(processed.language || "").toLowerCase();
       if (detectedLang.includes("c++") || detectedLang.includes("cpp")) setSelectedLangTab("cpp");
       else if (detectedLang.includes("python")) setSelectedLangTab("python");
       else if (detectedLang.includes("java") && !detectedLang.includes("script")) setSelectedLangTab("java");
@@ -1817,21 +1927,38 @@ export default function DSAAnalyzer() {
 
   async function analyze() {
     if (!code.trim()) return;
-    if (!DEFAULT_GROQ_API_KEY) {
-      setError("Groq API Key is not configured in the environment (.env file).");
+    const activeKey = customApiKey.trim() || DEFAULT_GROQ_API_KEY;
+    if (!activeKey) {
+      setError("Groq API Key is not configured. Please add one in Settings or .env file.");
       setPhase("error");
       return;
     }
     setPhase("analyzing"); setAnalysis(null); setError(""); setPlaying(false);
+    setIsDefaultKeyExhausted(false);
     clearTimeout(timerRef.current);
     
-    const userPrompt = "Analyze this code and return JSON:\n\n" + code +
-      (customInput.trim() ? "\n\nSimulate the execution step-by-step using this custom input structure: " + customInput.trim() : "");
+    let userPrompt = "Analyze this code and return JSON:\n\n" + code + "\n\n";
+    if (customInput.trim()) {
+      userPrompt += "Simulate the execution step-by-step using this custom input structure: " + customInput.trim() + "\n\n";
+    }
+    userPrompt += `CRITICAL SIMULATION INSTRUCTIONS:
+- You MUST generate a complete, granular, step-by-step trace of the entire algorithm execution.
+- Do NOT skip any iterations of loops. Do NOT jump directly to the sorted or final state.
+- Each individual comparison, swap, pointer movement, or variable update must be its own separate step in the "steps" array.
+- For sorting/array algorithms: every single element comparison and swap must be animated. The array state ('arr') in each step must show the exact array elements at that moment, and the 'arrStates' must highlight the indices currently being compared (comparing), swapped (swapping), or sorted (done).
+- For graph/tree algorithms: show each node visited (visited) and active edge traversed (highlighted) step by step.
+- For grid/matrix algorithms: show cell-by-cell movements.
+- In the "variables" field of each step, track every loop index (e.g., i, j, mid, left, right) and active variable.
+- Explain what happens in the "msg" field in beginner-friendly language.
+- The trace must run from the very beginning (first line of execution) all the way to the final returned result.
+- For "codeLines": You MUST include the complete, line-by-line representation of the ENTIRE algorithm (from the first line of code to the very last line, including helper functions, headers, declarations, all loop blocks, closing braces, and return statements). Do NOT skip any lines or truncate the code. The visualizer needs the entire code to show the line highlighting correctly.
+- Ensure that "activeLine" in each step points EXACTLY to the 0-indexed index of the line in "codeLines" that is currently executing (e.g., if you are comparing elements, "activeLine" must be the index of the comparison statement/if-statement line, NOT the loop header or initialization line). Do not shift or offset these index pointers.`;
 
     const candidates = [
-      { id: "llama-3.3-70b-versatile", jsonMode: true, maxTokens: 8192 },
-      { id: "groq/compound", jsonMode: true, maxTokens: 8192 },
-      { id: "openai/gpt-oss-120b", maxTokens: 8192 }
+      { id: "openai/gpt-oss-120b", jsonMode: true, maxTokens: 4096 },
+      { id: "meta-llama/llama-4-scout-17b-16e-instruct", jsonMode: true, maxTokens: 4096 },
+      { id: "llama-3.1-8b-instant", jsonMode: true, maxTokens: 4096 },
+      { id: "llama-3.3-70b-versatile", jsonMode: true, maxTokens: 4096 }
     ];
 
     let lastError = null;
@@ -1854,11 +1981,14 @@ export default function DSAAnalyzer() {
 
         const res = await fetch(GROQ_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + DEFAULT_GROQ_API_KEY },
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + activeKey },
           body: JSON.stringify(reqBody)
         });
 
         if (!res.ok) {
+          if (res.status === 413) {
+            throw new Error("Request Entity Too Large: The code or custom test input is too large to analyze. Please shorten it.");
+          }
           const d = await res.json().catch(() => ({}));
           const msg = d?.error?.message || `Groq API error ${res.status}`;
           throw new Error(msg);
@@ -1868,19 +1998,20 @@ export default function DSAAnalyzer() {
         const raw = data?.choices?.[0]?.message?.content || "";
         const clean = raw.replace(/```json|```/g, "").trim();
         const parsed = JSON.parse(clean);
+        const processedParsed = processParsedAnalysis(parsed, code);
 
-        setAnalysis(parsed);
+        setAnalysis(processedParsed);
         setStepIdx(0);
         setPhase("done");
 
-        const detectedLang = String(parsed.language || "").toLowerCase();
+        const detectedLang = String(processedParsed.language || "").toLowerCase();
         if (detectedLang.includes("c++") || detectedLang.includes("cpp")) setSelectedLangTab("cpp");
         else if (detectedLang.includes("python")) setSelectedLangTab("python");
         else if (detectedLang.includes("java") && !detectedLang.includes("script")) setSelectedLangTab("java");
         else if (detectedLang.includes("javascript") || detectedLang.includes("js")) setSelectedLangTab("javascript");
         
-        if (parsed.isValid !== false) {
-          saveToHistory(parsed);
+        if (processedParsed.isValid !== false) {
+          saveToHistory(processedParsed);
         }
         return; // Success, exit function
       } catch (e) {
@@ -1890,15 +2021,40 @@ export default function DSAAnalyzer() {
     }
 
     // If all candidates failed
-    const isRateLimit = lastError?.message?.toLowerCase().includes("rate limit");
-    setError(isRateLimit
-      ? "All AI models are currently rate-limited. Please wait 2-3 minutes and try again."
-      : (lastError?.message || "Failed to analyze. Check your code and try again."));
+    const errMsg = lastError?.message?.toLowerCase() || "";
+    const isRateLimitOrAuth = errMsg.includes("rate limit") || 
+                              errMsg.includes("rate_limit") || 
+                              errMsg.includes("quota") || 
+                              errMsg.includes("balance") || 
+                              errMsg.includes("auth") || 
+                              errMsg.includes("unauthorized") ||
+                              errMsg.includes("key");
+
+    if (errMsg.includes("too large") || errMsg.includes("413")) {
+      setError("The code or custom test input you provided is too large to analyze. Please shorten your code snippet or simplify your custom test input.");
+    } else if (isRateLimitOrAuth && !customApiKey.trim()) {
+      setIsDefaultKeyExhausted(true);
+      setError("The default shared API key has reached its rate limit or run out of quota.");
+    } else {
+      setError(lastError?.message || "Failed to analyze. Check your code and try again.");
+    }
     setPhase("error");
   }
 
   const steps = analysis?.steps || [];
   const cur = steps[stepIdx] || null;
+
+  // Determine active visualizer mode based on category & layout fields
+  const categoryLower = String(analysis?.category || "").toLowerCase();
+  const isGraphMode = !!analysis?.graphLayout || categoryLower.includes("graph") || categoryLower.includes("tree");
+  const isMatrixMode = categoryLower.includes("matrix") || categoryLower.includes("grid") || steps.some(s => s?.matrix);
+
+  // Fallback states resolver
+  const activeArr = getActiveArray(steps, stepIdx);
+  const activeMatrix = getActiveMatrix(steps, stepIdx);
+  const activeNodeStates = getActiveNodeStates(steps, stepIdx);
+  const activeNodeVals = getActiveNodeVals(steps, stepIdx);
+  const activeEdgeStates = getActiveEdgeStates(steps, stepIdx);
 
   const tick = useCallback(() => {
     setStepIdx(p => {
@@ -2006,7 +2162,7 @@ export default function DSAAnalyzer() {
                 outline: "none"
               }}
             >
-              [ Creator Info ]
+              [ Settings / Creator ]
             </button>
 
             {/* Creator Popover Card */}
@@ -2031,9 +2187,85 @@ export default function DSAAnalyzer() {
                   border: "1px solid #cbd5e1", 
                   textAlign: "left" 
                 }}>
-                  <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a", margin: "0 0 4px 0", textTransform: "uppercase" }}>
-                    Kalpesh Paliwal
+                  {/* Settings section */}
+                  <h3 style={{ fontSize: "12px", fontWeight: 700, color: "#475569", margin: "0 0 8px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    ⚙️ API Configuration
                   </h3>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: "block", fontSize: "10px", fontWeight: 700, color: "#64748b", marginBottom: 6 }}>
+                      Custom Groq API Key:
+                    </label>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <input
+                        type={showKey ? "text" : "password"}
+                        placeholder="gsk_..."
+                        value={customApiKey}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCustomApiKey(val);
+                          localStorage.setItem("groq_api_key", val);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          border: "1px solid #cbd5e1",
+                          fontSize: 11,
+                          fontFamily: "monospace",
+                          outline: "none"
+                        }}
+                      />
+                      <button
+                        onClick={() => setShowKey(!showKey)}
+                        title={showKey ? "Hide API Key" : "Show API Key"}
+                        style={{
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          border: "1px solid #cbd5e1",
+                          background: "#f8fafc",
+                          cursor: "pointer",
+                          fontSize: 11,
+                          lineHeight: 1
+                        }}
+                      >
+                        {showKey ? "👁️" : "🙈"}
+                      </button>
+                    </div>
+                    {customApiKey && (
+                      <button
+                        onClick={() => {
+                          setCustomApiKey("");
+                          localStorage.removeItem("groq_api_key");
+                        }}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#ef4444",
+                          fontSize: 9,
+                          fontWeight: 750,
+                          cursor: "pointer",
+                          padding: 0,
+                          marginTop: 6,
+                          outline: "none"
+                        }}
+                      >
+                        Clear Custom Key
+                      </button>
+                    )}
+                    <p style={{ fontSize: 9.5, color: "#94a3b8", margin: "6px 0 0 0", lineHeight: 1.35 }}>
+                      If set, this key overrides the default workspace API key. Stored securely in local storage. Get a free key at <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: "#3b82f6", fontWeight: 700, textDecoration: "underline" }}>console.groq.com/keys</a>.
+                    </p>
+                  </div>
+                  
+                  <hr style={{ border: "0", borderTop: "1px solid #e2e8f0", margin: "14px 0" }} />
+
+                  {/* Creator Profile section */}
+                  <h3 style={{ fontSize: "12px", fontWeight: 700, color: "#475569", margin: "0 0 4px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    👨‍💻 Creator Info
+                  </h3>
+                  <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", margin: "0 0 2px 0" }}>
+                    Kalpesh Paliwal
+                  </h4>
                   <p style={{ fontSize: "11px", color: "#64748b", margin: "0 0 16px 0" }}>
                     klpshplwl455@gmail.com
                   </p>
@@ -2191,6 +2423,60 @@ export default function DSAAnalyzer() {
 
           <textarea value={code} onChange={e => setCode(e.target.value)} spellCheck={false} style={{ width: "100%", minHeight: 160, padding: "14px 16px", border: "none", outline: "none", resize: "vertical", fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, lineHeight: 1.7, color: "#1e293b", background: "#fafafa", boxSizing: "border-box", display: "block" }} />
 
+          {isDefaultKeyExhausted && (
+            <div style={{
+              margin: "12px 16px",
+              padding: "16px",
+              background: "linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%)",
+              border: "1.5px solid #fecaca",
+              borderRadius: "10px",
+              boxShadow: "0 4px 6px -1px rgba(239, 68, 68, 0.05), 0 2px 4px -1px rgba(239, 68, 68, 0.03)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              alignItems: "flex-start",
+              animation: "fadeIn 0.3s ease-out"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: "16px" }}>⚠️</span>
+                <span style={{ fontSize: "13px", fontWeight: 800, color: "#991b1b", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Shared API Key Limit Reached
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: "12px", color: "#7f1d1d", lineHeight: 1.5 }}>
+                The shared workspace developer API key is currently rate-limited or out of quota. To continue visualizing, please provide your own personal **Groq API Key** (you can get a free key at <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: "#b91c1c", fontWeight: 700, textDecoration: "underline" }}>console.groq.com/keys</a>). Your key will only be used on this browser session and is kept completely private to you.
+              </p>
+              <button
+                onClick={() => setProfileOpen(true)}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#dc2626",
+                  color: "white",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  boxShadow: "0 2px 4px rgba(220, 38, 38, 0.2)",
+                  transition: "all 0.15s"
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = "#b91c1c";
+                  e.currentTarget.style.boxShadow = "0 3px 6px rgba(220, 38, 38, 0.3)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = "#dc2626";
+                  e.currentTarget.style.boxShadow = "0 2px 4px rgba(220, 38, 38, 0.2)";
+                }}
+              >
+                ⚙️ Enter Personal API Key
+              </button>
+            </div>
+          )}
+
           <div style={{ padding: "10px 16px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={analyze} disabled={phase === "analyzing" || !code.trim()} style={{ ...B, background: phase === "analyzing" ? "#f1f5f9" : "#0f172a", color: phase === "analyzing" ? "#94a3b8" : "white", border: "none", padding: "10px 24px", fontSize: 14, fontWeight: 700 }}>
               {phase === "analyzing" ? <Dots label="Analyzing" /> : "Analyze + Visualize"}
@@ -2315,9 +2601,9 @@ export default function DSAAnalyzer() {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                           <div style={{ display: "flex", alignItems: "center" }}>
                             <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: 1, textTransform: "uppercase" }}>
-                              {analysis?.graphLayout ? "Graph Canvas" : cur?.matrix ? "Matrix State" : "Array state"}
+                              {isGraphMode ? "Graph Canvas" : isMatrixMode ? "Matrix State" : "Array state"}
                             </span>
-                            {analysis?.graphLayout && (
+                            {isGraphMode && (
                               <button
                                 onClick={() => setGraphEditMode(!graphEditMode)}
                                 style={{
@@ -2337,11 +2623,12 @@ export default function DSAAnalyzer() {
                               </button>
                             )}
                           </div>
-                          {!analysis?.graphLayout && !cur?.matrix && cur?.arr && (
+                          {!isGraphMode && !isMatrixMode && activeArr && (
                             (() => {
-                              const isNumeric = Array.isArray(cur.arr)
-                                ? cur.arr.every(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(v) && !isNaN(parseFloat(v))))
-                                : false;
+                              const values = Array.isArray(activeArr)
+                                ? activeArr
+                                : (typeof activeArr === "string" ? activeArr.split("") : []);
+                              const isNumeric = values.every(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(v) && !isNaN(parseFloat(v))));
                               return isNumeric && (
                                 <div style={{ display: "flex", background: "#f1f5f9", padding: 2, borderRadius: 6 }}>
                                   <button onClick={() => setVizMode("cells")} style={{ padding: "3px 8px", fontSize: 9, fontWeight: 700, border: "none", borderRadius: 4, background: vizMode === "cells" ? "white" : "transparent", color: vizMode === "cells" ? "#1e293b" : "#64748b", cursor: "pointer", boxShadow: vizMode === "cells" ? "0 1px 2px rgba(0,0,0,0.05)" : "none", transition: "all 0.15s" }}>Cells</button>
@@ -2353,41 +2640,54 @@ export default function DSAAnalyzer() {
                         </div>
  
                         {(() => {
-                          const isNumeric = cur?.arr && (
-                            Array.isArray(cur.arr)
-                              ? cur.arr.every(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(v) && !isNaN(parseFloat(v))))
-                              : false
-                          );
-                          return analysis?.graphLayout ? (
-                            <div>
-                              <GraphViz 
-                                step={cur} 
-                                graphLayout={analysis.graphLayout} 
-                                graphEditMode={graphEditMode}
-                                setCustomInput={setCustomInput}
-                              />
-                              {graphEditMode && (
-                                <div style={{ fontSize: 9.5, color: "#2563eb", background: "#eff6ff", padding: "6px 10px", borderRadius: 8, marginTop: 8, border: "1px dashed #bfdbfe", lineHeight: 1.4 }}>
-                                  💡 <strong>Sandbox Mode:</strong> Click empty space to add a node. Click a node, then click another node to draw a connecting edge. Drag nodes to reposition.
-                                </div>
-                              )}
-                            </div>
-                          ) : cur?.matrix ? (
-                            <MatrixViz step={cur} onEdit={(rIdx, cIdx, newVal, currentMatrix) => {
-                              const updated = currentMatrix.map((row, r) => 
-                                row.map((val, c) => {
-                                  if (r === rIdx && c === cIdx) {
-                                    return isNaN(newVal) || String(newVal).trim() === "" ? newVal : (String(newVal).includes(".") ? parseFloat(newVal) : parseInt(newVal, 10));
-                                  }
-                                  return val;
-                                })
-                              );
-                              setCustomInput(`Matrix: [${updated.map(row => `[${row.join(",")}]`).join(",")}]`);
-                            }} />
-                          ) : (vizMode === "bars" && isNumeric) ? (
-                            <BarViz step={cur} />
-                          ) : (
-                            <ArrayViz step={cur} onEdit={(idx, newVal, currentArr) => {
+                          if (isGraphMode) {
+                            return (
+                              <div>
+                                <GraphViz 
+                                  nodeStates={activeNodeStates}
+                                  nodeVals={activeNodeVals}
+                                  edgeStates={activeEdgeStates}
+                                  graphLayout={analysis.graphLayout} 
+                                  graphEditMode={graphEditMode}
+                                  setCustomInput={setCustomInput}
+                                />
+                                {graphEditMode && (
+                                  <div style={{ fontSize: 9.5, color: "#2563eb", background: "#eff6ff", padding: "6px 10px", borderRadius: 8, marginTop: 8, border: "1px dashed #bfdbfe", lineHeight: 1.4 }}>
+                                    💡 <strong>Sandbox Mode:</strong> Click empty space to add a node. Click a node, then click another node to draw a connecting edge. Drag nodes to reposition.
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          
+                          if (isMatrixMode) {
+                            return (
+                              <MatrixViz matrix={activeMatrix} step={cur} onEdit={(rIdx, cIdx, newVal, currentMatrix) => {
+                                const updated = currentMatrix.map((row, r) => 
+                                  row.map((val, c) => {
+                                    if (r === rIdx && c === cIdx) {
+                                      return isNaN(newVal) || String(newVal).trim() === "" ? newVal : (String(newVal).includes(".") ? parseFloat(newVal) : parseInt(newVal, 10));
+                                    }
+                                    return val;
+                                  })
+                                );
+                                setCustomInput(`Matrix: [${updated.map(row => `[${row.join(",")}]`).join(",")}]`);
+                              }} />
+                            );
+                          }
+                          
+                          // Default to ArrayViz/BarViz
+                          const values = Array.isArray(activeArr)
+                            ? activeArr
+                            : (typeof activeArr === "string" ? activeArr.split("") : []);
+                          const isNumeric = values.every(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(v) && !isNaN(parseFloat(v))));
+                          
+                          if (vizMode === "bars" && isNumeric) {
+                            return <BarViz arr={activeArr} step={cur} />;
+                          }
+                          
+                          return (
+                            <ArrayViz arr={activeArr} step={cur} onEdit={(idx, newVal, currentArr) => {
                               const updated = [...currentArr];
                               updated[idx] = isNaN(newVal) || newVal.trim() === "" ? newVal : (newVal.includes(".") ? parseFloat(newVal) : parseInt(newVal, 10));
                               setCustomInput(`Array: [${updated.map(v => typeof v === 'string' ? `"${v}"` : v).join(", ")}]`);
